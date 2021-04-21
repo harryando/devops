@@ -1,0 +1,62 @@
+# Notes :
+# Use GitLab Community for CI/CD
+# Use Docker to create repository image
+# Use amazon ECR to store repository image
+# Use Kubernetes for dev, staging & production environments
+
+# Variables that we use in CI/CD Scripts
+variables:
+  REGISTRY: "ecr.amazonaws.com"
+  K8S_CONFIG_DEV: "/home/gitlab/.kube/config_dev"
+  K8S_CONFIG_STAGING: "/home/gitlab/.kube/config_staging"
+  K8S_CONFIG_PRODUCTION: "/home/gitlab/.kube/config_production"
+
+# Branch dev to Dev Server Environment
+# Auto deployed to Dev Server Environment
+deployment-dev:
+  stage: build
+  only:
+    - dev                                               #GitLab branch
+  tags:
+    - golang                                            #tag for the app
+  script:
+    - go build -o app1                                  #compile golang app
+    - docker build -t $REGISTRY:dev.$CI_PIPELINE_ID .   #build app to docker image
+    - docker push $REGISTRY:dev.$CI_PIPELINE_ID         #push image app to Registry
+    - kcs $K8S_CONFIG_DEV                               #change kubernetes config
+    - eval "kubectl patch deploy app1-service -n namespace1 --patch '{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"$REGISTRY:dev.$CI_PIPELINE_ID\",\"name\":\"app1-service-dev\"}]}}}}'"                        #deploy the app to the k8s
+    - docker rmi $REGISTRY:dev.$CI_PIPELINE_ID          #delete unnecessary docker image on local
+
+# Branch staging to Staging Server Environment  
+# Auto deployed to Staging Server Environment
+deployment-staging:
+  stage: build
+  only:
+    - staging
+  tags:
+    - golang
+  script:
+    - go build -o app1
+    - docker build -t $REGISTRY:staging.$CI_PIPELINE_ID .
+    - docker push $REGISTRY:staging.$CI_PIPELINE_ID
+    - kcs $K8S_CONFIG_STAGING
+    - eval "kubectl patch deploy app1-service -n namespace1 --patch '{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"$REGISTRY:staging.$CI_PIPELINE_ID\",\"name\":\"app1-service-staging\"}]}}}}'"
+    - docker rmi $REGISTRY:staging.$CI_PIPELINE_ID
+
+# Branch master to Production Server Environment
+# Manual deployed to Production Server Environment by hit the deploy button on GitLab
+deployment-production:
+  stage: build
+  only:
+    - master
+  tags:
+    - golang
+  script:
+    - go build -o app1 
+    - docker build -t $REGISTRY:master.$CI_PIPELINE_ID .
+    - docker push $REGISTRY:master.$CI_PIPELINE_ID
+    - kcs $K8S_CONFIG_PRODUCTION
+    - eval "kubectl patch deploy app1-service -n namespace1 --patch '{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"$REGISTRY:master.$CI_PIPELINE_ID\",\"name\":\"app1-service-production\"}]}}}}'"
+    - docker rmi $REGISTRY:master.$CI_PIPELINE_ID
+  when: manual                                          #manual deploy to Production
+
