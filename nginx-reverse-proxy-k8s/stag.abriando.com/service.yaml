@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: reverse-proxy-abriando-svc
+  namespace: reverse-proxy 
+spec:
+  selector:
+    app: reverse-proxy-abriando-svc
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+    name: nginx
