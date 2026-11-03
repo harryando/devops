@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reverse-proxy-abriando-svc
+  namespace: reverse-proxy 
+  labels:
+    app: reverse-proxy-abriando-svc
+spec:
+  selector:
+    matchLabels:
+      app: reverse-proxy-abriando-svc
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: reverse-proxy-abriando-svc
+    spec:
+      containers:
+        - name: reverse-proxy-abriando-svc
+          image: nginx:alpine
+          ports:
+          - containerPort: 80
+          volumeMounts:
+            - name: reverse-proxy-abriando-config 
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: reverse-proxy-abriando-config
+          configMap:
+            name: reverse-proxy-abriando-config 
