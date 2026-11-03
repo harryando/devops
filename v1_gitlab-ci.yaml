@@ -59,4 +59,3 @@ deployment-production:
     - eval "kubectl patch deploy app1-service -n namespace1 --patch '{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"image\":\"$REGISTRY:master.$CI_PIPELINE_ID\",\"name\":\"app1-service-production\"}]}}}}'"
     - docker rmi $REGISTRY:master.$CI_PIPELINE_ID
   when: manual                                          #manual deploy to Production
-
